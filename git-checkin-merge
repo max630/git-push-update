@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+main()
+{
+    
+}
+
+
+# git checkin-merge [remote branch]
+main "$@"
