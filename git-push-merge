@@ -13,17 +13,14 @@ main()
     git fetch "$REMOTE" +"$REMOTE_BRANCH":refs/push-merge/remote
     git clone --no-checkout --shared . "$REPO"
     git push "$REPO" +"$HEAD":refs/heads/local +refs/push-merge/remote:refs/heads/remote
-    MERGEBASE=$(git merge-base HEAD refs/push-merge/remote)
     echo "!/**" >"$REPO/.git/info/sparse-checkout"
-    git diff --name-only --no-renames "$MERGEBASE"..HEAD \
-        | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
+    lsfiles_MERGE | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
     (
         cd "$REPO"
         git config core.sparseCheckout true
         # to prevent "error: Sparse checkout leaves no entry on working directory"
         git ls-tree -r --name-only "remote" | head -1 | checkout_from_quote >>.git/info/sparse-checkout
-        git reset --hard "remote"
-        git merge --no-ff --edit local
+        update_MERGE remote local
         git push origin +HEAD:refs/push-merge/merged
     )
     git push "$REMOTE" refs/push-merge/merged:"$REMOTE_BRANCH"
@@ -35,6 +32,26 @@ checkout_from_quote()
         -e 's/(\\.)\+/*/g' \
         -e 's/ $/\\ /' \
         -e 's/^/\//'
+}
+
+update_MERGE()
+{
+    local dst src
+
+    dst="$1"
+    src="$2"
+    git reset --hard "$dst"
+    git merge --no-ff --edit "$src"
+}
+
+lsfiles_MERGE()
+{
+    local mergebase dst src
+
+    dst="$1"
+    src="$2"
+    mergebase=$(git merge-base "$dst" "$src")
+    git diff --name-only --no-renames "$mergebase".."$src"
 }
 
 finalize()
