@@ -1,0 +1,53 @@
+#!/bin/sh
+
+set -e
+
+main()
+{
+    REMOTE="$1"
+    REMOTE_BRANCH="$2"
+    REPO_DIR=$(mktemp -d)
+    trap finalize 0
+    REPO="$REPO_DIR/merge-tmp-repo"
+    HEAD=$(git rev-parse HEAD)
+    git fetch "$REMOTE" +"$REMOTE_BRANCH":refs/push-merge/remote
+    git clone --no-checkout --shared . "$REPO"
+    git push "$REPO" +"$HEAD":refs/heads/local +refs/push-merge/remote:refs/heads/remote
+    MERGEBASE=$(git merge-base HEAD refs/push-merge/remote)
+    echo "!/**" >"$REPO/.git/info/sparse-checkout"
+    git diff --name-status --no-renames "$MERGEBASE"..HEAD \
+        | sed -e '/^A/d' -e 's/^.\t//' \
+        | checkout_from_quote >>"$REPO/.git/info/sparse-checkout.files"
+    if ! test -s "$REPO/.git/info/sparse-checkout.files"; then EMPTY=yes; fi
+    cat "$REPO/.git/info/sparse-checkout.files" >>"$REPO/.git/info/sparse-checkout"
+    (
+        cd "$REPO"
+        git config core.sparseCheckout true
+        if test -n "$EMPTY"; then
+            git ls-tree -r --name-only "remote" | head -1 | checkout_from_quote >>.git/info/sparse-checkout
+        fi
+        git reset --hard "remote"
+        git merge --no-ff --edit local
+        git push origin +HEAD:refs/push-merge/merged
+    )
+    git push "$REMOTE" refs/push-merge/merged:"$REMOTE_BRANCH"
+}
+
+checkout_from_quote()
+{
+    sed -e 's/^"\(.*\)"$/\1/' \
+        -e 's/(\\.)\+/*/g' \
+        -e 's/ $/\\ /' \
+        -e 's/^/\//'
+}
+
+finalize()
+{
+    git update-ref -d refs/push-merge/remote || true
+    git update-ref -d refs/push-merge/merged || true
+    rm -rf "$REPO_DIR/merge-tmp-repo"
+    rmdir "$REPO_DIR" || true
+}
+
+# git push-merge remoteName branch
+main "$@"
