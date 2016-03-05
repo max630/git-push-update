@@ -62,6 +62,7 @@ file"
         "$SRCDIR/git-push-merge" origin master
         git pull origin master
     )
+    git log --oneline --decorate --graph --all | cat
 )
 
 rm -rf "$DIR/origin"
