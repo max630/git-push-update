@@ -5,11 +5,12 @@ set -e
 SRCDIR=$(pwd)
 
 DIR=$(mktemp -d)
+mkdir "$DIR/origin"
 
 export GIT_EDITOR=true
 
 (
-    cd "$DIR"
+    cd "$DIR/origin"
     git init
     git commit --allow-empty -m init
     touch simplefile
@@ -63,3 +64,5 @@ file"
     )
 )
 
+rm -rf "$DIR/origin"
+rmdir "$DIR"
