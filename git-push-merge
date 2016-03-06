@@ -24,7 +24,13 @@ main()
         update_MERGE remote local
         git push -q origin +HEAD:refs/push-merge/merged
     )
-    git push -q "$REMOTE" refs/push-merge/merged:"$REMOTE_BRANCH"
+
+    if git -c advice.pushFetchFirst=false push -q "$REMOTE" refs/push-merge/merged:"$REMOTE_BRANCH";
+    then :
+    else
+        echo "Push failed, resolve the issue or try again in case of \"fetch first\" error"
+        exit 1
+    fi
 }
 
 checkout_from_quote()
