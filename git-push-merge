@@ -25,11 +25,21 @@ main()
         git push -q origin +HEAD:refs/push-merge/merged
     )
 
-    if git -c advice.pushFetchFirst=false push -q "$REMOTE" refs/push-merge/merged:"$REMOTE_BRANCH";
+    if git -c advice.pushFetchFirst=false push -q "$REMOTE" refs/push-merge/merged:"$REMOTE_BRANCH"
     then :
     else
-        echo "Push failed, resolve the issue or try again in case of \"fetch first\" error"
-        exit 1
+        git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-merge/remote2
+        old=$(git rev-parse refs/push-merge/remote)
+        new=$(git rev-parse refs/push-merge/remote2)
+        mrg=$(git rev-parse refs/push-merge/merged)
+        if test "$new" != "$mrg"
+        then
+            if test "$old" != "$new"; then
+                echo "Remote branch was updated by other user during preparing new updates"
+                echo "please retry"
+            fi
+            exit 1
+        fi
     fi
 }
 
@@ -73,6 +83,7 @@ lsfiles_MERGE()
 finalize()
 {
     git update-ref -d refs/push-merge/remote || true
+    git update-ref -d refs/push-merge/remote2 || true
     git update-ref -d refs/push-merge/merged || true
     rm -rf "$REPO_DIR/merge-tmp-repo"
     rmdir "$REPO_DIR" || true
