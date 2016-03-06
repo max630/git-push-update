@@ -6,13 +6,14 @@ SRCDIR=$(pwd)
 
 DIR=$(mktemp -d)
 mkdir "$DIR/origin"
+echo "Test directory: $DIR"
 
 export GIT_EDITOR=true
 
 (
     cd "$DIR/origin"
-    git init
-    git commit --allow-empty -m init
+    git init -q
+    git commit -q --allow-empty -m init
     touch simplefile
     touch "space file"
     touch "trailing space file "
@@ -22,11 +23,11 @@ export GIT_EDITOR=true
     touch "newline
 file"
     git add .
-    git commit -m 'files added'
-    git clone . clone
+    git commit -q -m 'files added'
+    git clone -q . clone
     # smoke
-    git commit --allow-empty -m 'advance'
-    git checkout --detach master
+    git commit -q --allow-empty -m 'advance'
+    git checkout -q --detach master
     (
         cd clone
         echo line1 >>simplefile
@@ -37,39 +38,39 @@ file"
         echo line1 >>"sinlequote'file"
         echo line1 >>"newline
 file"
-        git commit -m edits -a
+        git commit -q -m edits -a
         "$SRCDIR/git-push-merge" origin master
-        git pull origin master
+        git pull -q origin master
     )
-    git checkout master
-    git commit --allow-empty -m 'advance'
-    git checkout --detach master
+    git checkout -q master
+    git commit -q --allow-empty -m 'advance'
+    git checkout -q --detach master
     (
         cd clone
         echo line1 >newfile
         git add newfile
-        git commit -m 'newfile'
+        git commit -q -m 'newfile'
         "$SRCDIR/git-push-merge" origin master
-        git pull origin master
+        git pull -q origin master
     )
-    git checkout master
-    git commit --allow-empty -m advance
-    git checkout --detach master
+    git checkout -q master
+    git commit -q --allow-empty -m advance
+    git checkout -q --detach master
     (
         cd clone
-        git rm newfile
-        git commit -m 'rm newfile'
+        git rm -q newfile
+        git commit -q -m 'rm newfile'
         "$SRCDIR/git-push-merge" origin master
-        git pull origin master
+        git pull -q origin master
     )
-    git checkout -B branch1 master
-    git commit --allow-empty -m advance
-    git checkout --detach branch1
+    git checkout -q -B branch1 master
+    git commit -q --allow-empty -m advance
+    git checkout -q --detach branch1
     (
         cd clone
-        git commit --allow-empty -m 'nothing'
+        git commit -q --allow-empty -m 'nothing'
         "$SRCDIR/git-push-merge" origin branch1
-        git pull origin branch1
+        git pull -q origin branch1
     )
     git log --oneline --decorate --graph --all | cat
 )
