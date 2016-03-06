@@ -30,9 +30,8 @@ echo "Test directory: $DIR"
         export GIT_EDITOR
         export GIT_EDITOR_CASE=wait
         "$SRCDIR/git-push-merge" origin master || true
-        git pull -q origin master
+        git log --oneline --decorate --graph --all | cat
     )
-    git log --oneline --decorate --graph --all | cat
 )
 
 rm -rf "$DIR/origin"

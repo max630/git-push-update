@@ -70,9 +70,9 @@ file"
         cd clone
         git commit -q --allow-empty -m 'nothing'
         "$SRCDIR/git-push-merge" origin branch1
-        git pull -q origin branch1
+        # git pull -q origin branch1
+        git log --oneline --decorate --graph --all | cat
     )
-    git log --oneline --decorate --graph --all | cat
 )
 
 rm -rf "$DIR/origin"
