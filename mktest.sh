@@ -62,6 +62,15 @@ file"
         "$SRCDIR/git-push-merge" origin master
         git pull origin master
     )
+    git checkout -B branch1 master
+    git commit --allow-empty -m advance
+    git checkout --detach branch1
+    (
+        cd clone
+        git commit --allow-empty -m 'nothing'
+        "$SRCDIR/git-push-merge" origin branch1
+        git pull origin branch1
+    )
     git log --oneline --decorate --graph --all | cat
 )
 

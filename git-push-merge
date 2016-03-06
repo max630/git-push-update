@@ -6,13 +6,14 @@ main()
 {
     REMOTE="$1"
     REMOTE_BRANCH="$2"
+
     REPO_DIR=$(mktemp -d)
     trap finalize 0
     REPO="$REPO_DIR/merge-tmp-repo"
-    HEAD=$(git rev-parse HEAD)
     git fetch "$REMOTE" +"$REMOTE_BRANCH":refs/push-merge/remote
+    prepare_MERGE "$REMOTE_BRANCH"
     git clone --no-checkout --shared . "$REPO"
-    git push "$REPO" +"$HEAD":refs/heads/local +refs/push-merge/remote:refs/heads/remote
+    git push "$REPO" +HEAD:refs/heads/local +refs/push-merge/remote:refs/heads/remote
     echo "!/**" >"$REPO/.git/info/sparse-checkout"
     lsfiles_MERGE | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
     (
@@ -34,14 +35,23 @@ checkout_from_quote()
         -e 's/^/\//'
 }
 
+prepare_MERGE()
+{
+    MERGE_REMOTE_BRANCH="$1"
+    MERGE_LOCAL_HEAD=$(git rev-parse --symbolic-full-name HEAD | sed -e 's|^refs/heads/||')
+}
+
 update_MERGE()
 {
-    local dst src
+    local dst src host
 
     dst="$1"
     src="$2"
-    git reset --hard "$dst"
-    git merge --no-ff --edit "$src"
+    host=$(hostname -s)
+
+    git update-ref "refs/remotes/$host/$MERGE_LOCAL_HEAD" "$src"
+    git checkout --force -B "$MERGE_REMOTE_BRANCH" "$dst"
+    git merge --no-ff --edit "$host/$MERGE_LOCAL_HEAD"
 }
 
 lsfiles_MERGE()
