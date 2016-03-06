@@ -11,17 +11,17 @@ main()
     trap finalize 0
     REPO="$REPO_DIR/merge-tmp-repo"
     git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-merge/remote
-    prepare_MERGE "$REMOTE_BRANCH"
+    prepare_$UPDATE_TYPE "$REMOTE_BRANCH"
     git clone -q --no-checkout --shared . "$REPO"
     git push -q "$REPO" +HEAD:refs/heads/local +refs/push-merge/remote:refs/heads/remote
     echo "!/**" >"$REPO/.git/info/sparse-checkout"
-    lsfiles_MERGE refs/push-merge/remote HEAD | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
+    lsfiles_$UPDATE_TYPE refs/push-merge/remote HEAD | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
     (
         cd "$REPO"
         git config core.sparseCheckout true
         # to prevent "error: Sparse checkout leaves no entry on working directory"
         git ls-tree -r --name-only "remote" | head -1 | checkout_from_quote >>.git/info/sparse-checkout
-        update_MERGE remote local
+        update_$UPDATE_TYPE remote local
         git push -q origin +HEAD:refs/push-merge/merged
     )
 
@@ -59,15 +59,14 @@ prepare_MERGE()
 
 update_MERGE()
 {
-    local dst src host
+    local dst src
 
     dst="$1"
     src="$2"
-    host=$(hostname -s)
 
-    git update-ref "refs/remotes/$host/$MERGE_LOCAL_HEAD" "$src"
+    git update-ref "refs/remotes/$OPT_HOST/$MERGE_LOCAL_HEAD" "$src"
     git checkout -q --force -B "$MERGE_REMOTE_BRANCH" "$dst"
-    git merge --no-ff --edit "$host/$MERGE_LOCAL_HEAD"
+    git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_HEAD"
 }
 
 lsfiles_MERGE()
@@ -89,5 +88,43 @@ finalize()
     rmdir "$REPO_DIR" || true
 }
 
+OPTS_SPEC="\
+git push-merge [options] <remoteName> <remoteBranch>
+
+--
+h,help      Help
+
+type!=      Update type to use [merge(default),rebase]
+host!=      Host to be mentioned in merge message (hostname by default)"
+
 # git push-merge remoteName branch
-main "$@"
+eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- "$@")"
+OPT_HOST=
+OPT_TYPE=merge
+while test "$1" != "--"
+do
+    case "$1" in
+    --host) OPT_HOST="$2"
+        shift;;
+    --type) OPT_TYPE="$2"
+        shift;;
+    *) echo "Unexpected option: $1" >/dev/stderr
+        exit 1;;
+    esac
+    shift
+done
+
+case "$OPT_TYPE" in
+merge) UPDATE_TYPE=MERGE;;
+rebase) UPDATE_TYPE=REBASE;;
+*) echo "Unknown update type: $type"
+    exit 1;;
+esac
+
+if test -z "$OPT_HOST"
+then
+    OPT_HOST=$(hostname -s)
+fi
+
+echo "args: \"$@\""
+main "$2" "$3"
