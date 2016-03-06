@@ -15,7 +15,7 @@ main()
     git clone --no-checkout --shared . "$REPO"
     git push "$REPO" +HEAD:refs/heads/local +refs/push-merge/remote:refs/heads/remote
     echo "!/**" >"$REPO/.git/info/sparse-checkout"
-    lsfiles_MERGE | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
+    lsfiles_MERGE refs/push-merge/remote HEAD | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
     (
         cd "$REPO"
         git config core.sparseCheckout true
