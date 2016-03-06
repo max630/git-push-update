@@ -10,10 +10,10 @@ main()
     REPO_DIR=$(mktemp -d)
     trap finalize 0
     REPO="$REPO_DIR/merge-tmp-repo"
-    git fetch "$REMOTE" +"$REMOTE_BRANCH":refs/push-merge/remote
+    git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-merge/remote
     prepare_MERGE "$REMOTE_BRANCH"
-    git clone --no-checkout --shared . "$REPO"
-    git push "$REPO" +HEAD:refs/heads/local +refs/push-merge/remote:refs/heads/remote
+    git clone -q --no-checkout --shared . "$REPO"
+    git push -q "$REPO" +HEAD:refs/heads/local +refs/push-merge/remote:refs/heads/remote
     echo "!/**" >"$REPO/.git/info/sparse-checkout"
     lsfiles_MERGE refs/push-merge/remote HEAD | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
     (
@@ -22,9 +22,9 @@ main()
         # to prevent "error: Sparse checkout leaves no entry on working directory"
         git ls-tree -r --name-only "remote" | head -1 | checkout_from_quote >>.git/info/sparse-checkout
         update_MERGE remote local
-        git push origin +HEAD:refs/push-merge/merged
+        git push -q origin +HEAD:refs/push-merge/merged
     )
-    git push "$REMOTE" refs/push-merge/merged:"$REMOTE_BRANCH"
+    git push -q "$REMOTE" refs/push-merge/merged:"$REMOTE_BRANCH"
 }
 
 checkout_from_quote()
@@ -50,7 +50,7 @@ update_MERGE()
     host=$(hostname -s)
 
     git update-ref "refs/remotes/$host/$MERGE_LOCAL_HEAD" "$src"
-    git checkout --force -B "$MERGE_REMOTE_BRANCH" "$dst"
+    git checkout -q --force -B "$MERGE_REMOTE_BRANCH" "$dst"
     git merge --no-ff --edit "$host/$MERGE_LOCAL_HEAD"
 }
 
