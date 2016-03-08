@@ -76,7 +76,7 @@ prepare_REBASE()
 
 update_REBASE()
 {
-    local dst src
+    local dst src changed
 
     dst="$1"
     src="$2"
@@ -84,6 +84,16 @@ update_REBASE()
     git ls-tree -r --name-only "$src" | head -1 | checkout_from_quote >>.git/info/sparse-checkout
     git checkout -f -B rebase "$src"
     git rebase --keep-empty --verbose "$dst"
+    changed=$(git rev-list --right-only --cherry-pick HEAD..."$src")
+    if test -n "$changed"
+    then
+        echo "Commits changed during rebase:"
+        echo "--------------------------"
+        git log --oneline --right-only --cherry-pick HEAD..."$src"|cat
+        echo "--------------------------"
+        echo "They will cause conflicts at later rebases. Update your branch and try again"
+        exit 1
+    fi
 }
 
 finalize()
