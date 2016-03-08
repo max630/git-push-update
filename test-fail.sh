@@ -29,7 +29,7 @@ echo "Test directory: $DIR"
         GIT_EDITOR="$SRCDIR/testeditor.sh"
         export GIT_EDITOR
         export GIT_EDITOR_CASE=wait
-        "$SRCDIR/git-push-merge" origin master || true
+        "$SRCDIR/git-push-update" origin master || true
         git log --oneline --decorate --graph --all | cat
     )
 )

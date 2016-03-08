@@ -23,7 +23,7 @@ echo "Test directory: $DIR"
         cd clone
         sed -i file -e s/7/7edit/
         git commit -q -a -m 'edit line 7'
-        "$SRCDIR/git-push-merge" --type=rebase origin master
+        "$SRCDIR/git-push-update" --type=rebase origin master
         git log --oneline --decorate --graph --all | cat
     )
 )
