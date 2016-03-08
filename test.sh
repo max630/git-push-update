@@ -87,7 +87,7 @@ file"
         git commit -q --allow-empty -m 'nothing'
         "$SRCDIR/git-push-merge" --type="$TYPE" origin branch1
         # git pull -q origin branch1
-        git log --oneline --stat --decorate --graph --all | cat
+        git log --oneline --decorate --graph --all | cat
     )
 )
 
