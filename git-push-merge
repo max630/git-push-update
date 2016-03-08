@@ -14,11 +14,13 @@ main()
     prepare_$UPDATE_TYPE "$REMOTE_BRANCH"
     git clone -q --no-checkout --shared . "$REPO"
     git push -q "$REPO" +HEAD:refs/heads/local +refs/push-merge/remote:refs/heads/remote
-    echo "!/**" >"$REPO/.git/info/sparse-checkout"
-    lsfiles_$UPDATE_TYPE refs/push-merge/remote HEAD | checkout_from_quote >>"$REPO/.git/info/sparse-checkout"
     (
         cd "$REPO"
         git config core.sparseCheckout true
+        echo "!/**" >".git/info/sparse-checkout"
+        # it will add the files itself
+        # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
+        git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
         update_$UPDATE_TYPE remote local
         git push -q origin +HEAD:refs/push-merge/merged
     )
@@ -62,21 +64,9 @@ update_MERGE()
     dst="$1"
     src="$2"
 
-    # to prevent "error: Sparse checkout leaves no entry on working directory"
-    git ls-tree -r --name-only "$dst" | head -1 | checkout_from_quote >>.git/info/sparse-checkout
     git update-ref "refs/remotes/$OPT_HOST/$MERGE_LOCAL_HEAD" "$src"
     git checkout -q --force -B "$MERGE_REMOTE_BRANCH" "$dst"
     git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_HEAD"
-}
-
-lsfiles_MERGE()
-{
-    local mergebase dst src
-
-    dst="$1"
-    src="$2"
-    mergebase=$(git merge-base "$dst" "$src")
-    git diff --name-only --no-renames "$mergebase".."$src"
 }
 
 prepare_REBASE()
@@ -92,14 +82,8 @@ update_REBASE()
     src="$2"
 
     git ls-tree -r --name-only "$src" | head -1 | checkout_from_quote >>.git/info/sparse-checkout
-    cat .git/info/sparse-checkout
     git checkout -f -B rebase "$src"
     git rebase --keep-empty --verbose "$dst"
-}
-
-lsfiles_REBASE()
-{
-    false TODO
 }
 
 finalize()
