@@ -2,47 +2,6 @@
 
 set -e
 
-main()
-{
-    REMOTE="$1"
-    REMOTE_BRANCH="$2"
-
-    REPO_DIR=$(mktemp -d)
-    trap finalize 0
-    REPO="$REPO_DIR/update-tmp-repo"
-    git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote
-    prepare_$UPDATE_TYPE "$REMOTE_BRANCH"
-    git clone -q --no-checkout --shared . "$REPO"
-    git push -q "$REPO" +HEAD:refs/heads/local +refs/push-update/remote:refs/heads/remote
-    (
-        cd "$REPO"
-        git config core.sparseCheckout true
-        echo "!/**" >".git/info/sparse-checkout"
-        # it will add the files itself
-        # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
-        git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
-        update_$UPDATE_TYPE remote local
-        git push -q origin +HEAD:refs/push-update/merged
-    )
-
-    if git -c advice.pushFetchFirst=false push -q "$REMOTE" refs/push-update/merged:"$REMOTE_BRANCH"
-    then :
-    else
-        git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote2
-        old=$(git rev-parse refs/push-update/remote)
-        new=$(git rev-parse refs/push-update/remote2)
-        mrg=$(git rev-parse refs/push-update/merged)
-        if test "$new" != "$mrg"
-        then
-            if test "$old" != "$new"; then
-                echo "Remote branch was updated by other user during preparing new updates"
-                echo "please retry"
-            fi
-            exit 1
-        fi
-    fi
-}
-
 checkout_from_quote()
 {
     sed -e 's/^"\(.*\)"$/\1/' \
@@ -143,4 +102,40 @@ then
     OPT_HOST=$(hostname -s)
 fi
 
-main "$2" "$3"
+REMOTE="$2"
+REMOTE_BRANCH="$3"
+
+REPO_DIR=$(mktemp -d)
+trap finalize 0
+REPO="$REPO_DIR/update-tmp-repo"
+git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote
+prepare_$UPDATE_TYPE "$REMOTE_BRANCH"
+git clone -q --no-checkout --shared . "$REPO"
+git push -q "$REPO" +HEAD:refs/heads/local +refs/push-update/remote:refs/heads/remote
+(
+    cd "$REPO"
+    git config core.sparseCheckout true
+    echo "!/**" >".git/info/sparse-checkout"
+    # it will add the files itself
+    # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
+    git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
+    update_$UPDATE_TYPE remote local
+    git push -q origin +HEAD:refs/push-update/merged
+)
+
+if git -c advice.pushFetchFirst=false push -q "$REMOTE" refs/push-update/merged:"$REMOTE_BRANCH"
+then :
+else
+    git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote2
+    old=$(git rev-parse refs/push-update/remote)
+    new=$(git rev-parse refs/push-update/remote2)
+    mrg=$(git rev-parse refs/push-update/merged)
+    if test "$new" != "$mrg"
+    then
+        if test "$old" != "$new"; then
+            echo "Remote branch was updated by other user during preparing new updates"
+            echo "please retry"
+        fi
+        exit 1
+    fi
+fi
