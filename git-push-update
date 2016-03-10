@@ -80,6 +80,7 @@ OPT_TYPE=merge
 while test "$1" != "--"
 do
     case "$1" in
+    --help|-h) exit;;
     --host) OPT_HOST="$2"
         shift;;
     --type) OPT_TYPE="$2"
@@ -89,6 +90,12 @@ do
     esac
     shift
 done
+
+if test $# -eq 1
+then
+    eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- -h)"
+    exit
+fi
 
 case "$OPT_TYPE" in
 merge) UPDATE_TYPE=MERGE;;
