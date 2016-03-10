@@ -12,8 +12,26 @@ checkout_from_quote()
 
 prepare_MERGE()
 {
+    local src
+
     MERGE_REMOTE_BRANCH="$1"
-    MERGE_LOCAL_HEAD=$(git rev-parse --symbolic-full-name HEAD | sed -e 's|^refs/heads/||')
+    if test -n "$2"
+    then src="$2"
+    else src=HEAD
+    fi
+    if test "$#" -gt 2
+    then
+        echo "Only 1 source branch is allowed for merge type"
+        exit 1
+    fi
+    MERGE_LOCAL_NAME=$(git rev-parse --symbolic-full-name "$src" | sed -e 's|^refs/heads/||')
+    if test -z "$MERGE_LOCAL_NAME"
+    then
+        echo "Cannot resolve local branch: $src"
+        exit 1
+    fi
+    MERGE_LOCAL_HASH=$(git rev-parse --revs-only "$src")
+    PUSH_HASH="$MERGE_LOCAL_HASH"
 }
 
 update_MERGE()
@@ -21,16 +39,33 @@ update_MERGE()
     local dst src
 
     dst="$1"
-    src="$2"
+    src="$MERGE_LOCAL_HASH"
 
-    git update-ref "refs/remotes/$OPT_HOST/$MERGE_LOCAL_HEAD" "$src"
+    git update-ref "refs/remotes/$OPT_HOST/$MERGE_LOCAL_NAME" "$src"
     git checkout -q --force -B "$MERGE_REMOTE_BRANCH" "$dst"
-    git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_HEAD"
+    git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_NAME"
 }
 
 prepare_REBASE()
 {
-    :
+    local src
+
+    if test -n "$2"
+    then src="$2"
+    else src=HEAD
+    fi
+    if test "$#" -gt 2
+    then
+        echo "Only 1 source branch is allowed for rebase type"
+        exit 1
+    fi
+    REBASE_HEAD=$(git rev-parse --revs-only "$src")
+    if test -z "$REBASE_HEAD"
+    then
+        echo "Cannot resolve source spec: $src"
+        exit 1
+    fi
+    PUSH_HASH="$REBASE_HEAD"
 }
 
 update_REBASE()
@@ -40,10 +75,9 @@ update_REBASE()
     dst="$1"
     src="$2"
 
-    git ls-tree -r --name-only "$src" | head -1 | checkout_from_quote >>.git/info/sparse-checkout
-    git checkout -f -B rebase "$src"
+    git checkout -f -B rebase "$REBASE_HEAD"
     git rebase --keep-empty --verbose "$dst"
-    changed=$(git cherry -v HEAD "$src" | grep '^+' || true)
+    changed=$(git cherry -v HEAD "$REBASE_HEAD" | grep '^+' || true)
     if test -n "$changed"
     then
         echo "Commits changed during rebase:"
@@ -112,13 +146,15 @@ fi
 REMOTE="$2"
 REMOTE_BRANCH="$3"
 
+shift 3
+
 REPO_DIR=$(mktemp -d)
 trap finalize 0
 REPO="$REPO_DIR/update-tmp-repo"
 git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote
-prepare_$UPDATE_TYPE "$REMOTE_BRANCH"
+prepare_$UPDATE_TYPE "$REMOTE_BRANCH" "$@"
 git clone -q --no-checkout --shared . "$REPO"
-git push -q "$REPO" +HEAD:refs/heads/local +refs/push-update/remote:refs/heads/remote
+git push -q "$REPO" +"$PUSH_HASH":refs/heads/local +refs/push-update/remote:refs/heads/remote
 (
     cd "$REPO"
     git config core.sparseCheckout true
