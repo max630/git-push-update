@@ -48,22 +48,34 @@ update_MERGE()
 
 prepare_REBASE()
 {
-    local src
+    local tmp
 
-    if test -n "$2"
-    then src="$2"
-    else src=HEAD
+    shift
+    if test "$#" -eq 0
+    then set HEAD
     fi
-    if test "$#" -gt 2
-    then
-        echo "Only 1 source branch is allowed for rebase type"
-        exit 1
-    fi
-    REBASE_HEAD=$(git rev-parse --revs-only "$src")
+    REBASE_HEAD=$(git rev-parse --revs-only "$@" | sed -e '/^\^[0-9a-f]\+$/d')
+    REBASE_LIMIT=$(git rev-parse --revs-only "$@" | sed -e '/^[0-9a-f]\+$/d' -e 's/\^//')
     if test -z "$REBASE_HEAD"
     then
         echo "Cannot resolve source spec: $src"
         exit 1
+    else
+        tmp=$(git rev-parse --revs-only "$REBASE_HEAD")
+        if test -z "$tmp"
+        then
+            echo "Cannot resolve source spec: $src"
+            exit 1
+        fi
+    fi
+    if test -n "$REBASE_LIMIT"
+    then
+        tmp=$(git rev-parse --revs-only "$REBASE_LIMIT")
+        if test -z "$tmp"
+        then
+            echo "Cannot resolve source spec: $src"
+            exit 1
+        fi
     fi
     PUSH_HASH="$REBASE_HEAD"
 }
@@ -76,8 +88,14 @@ update_REBASE()
     src="$2"
 
     git checkout -f -B rebase "$REBASE_HEAD"
-    git rebase --keep-empty --verbose "$dst"
-    changed=$(git cherry -v HEAD "$REBASE_HEAD" | grep '^+' || true)
+    if test -n "$REBASE_LIMIT"
+    then
+        git rebase --keep-empty --verbose --onto "$dst" "$REBASE_LIMIT"
+        changed=$(git cherry -v HEAD "$REBASE_HEAD" "$REBASE_LIMIT" | grep '^+' || true)
+    else
+        git rebase --keep-empty --verbose "$dst"
+        changed=$(git cherry -v HEAD "$REBASE_HEAD" | grep '^+' || true)
+    fi
     if test -n "$changed"
     then
         echo "Commits changed during rebase:"
