@@ -1,7 +1,7 @@
 # git push-update
 Push with "server-side" merge or rebase.
 
-This script makes centralized workflow easier. No need to pull before push anymore, just push your commits and see them rebased or merged to target branch (if there are no conflicts). No change to local repository is made except updating remote branch reference. It runs in isolated environment - it either succeeds or aborts with no half-done work.
+This script makes centralized workflow easier. No need to pull before push anymore, just push your commits and see them rebased or merged to target branch (if there are no conflicts). No change to local repository is made except updating remote branch reference. It runs in isolated environment - it either succeeds or aborts with no half-done work. No changes to server code is needed.
 
 ###Usage:
 
