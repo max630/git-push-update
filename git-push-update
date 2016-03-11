@@ -1,0 +1,203 @@
+#!/bin/sh
+
+set -e
+
+checkout_from_quote()
+{
+    sed -e 's/^"\(.*\)"$/\1/' \
+        -e 's/(\\.)\+/*/g' \
+        -e 's/ $/\\ /' \
+        -e 's/^/\//'
+}
+
+prepare_MERGE()
+{
+    local src
+
+    MERGE_REMOTE_BRANCH="$1"
+    if test -n "$2"
+    then src="$2"
+    else src=HEAD
+    fi
+    if test "$#" -gt 2
+    then
+        echo "Only 1 source branch is allowed for merge type"
+        exit 1
+    fi
+    MERGE_LOCAL_NAME=$(git rev-parse --symbolic-full-name "$src" | sed -e 's|^refs/heads/||')
+    if test -z "$MERGE_LOCAL_NAME"
+    then
+        echo "Cannot resolve local branch: $src"
+        exit 1
+    fi
+    MERGE_LOCAL_HASH=$(git rev-parse --revs-only "$src")
+    PUSH_HASH="$MERGE_LOCAL_HASH"
+}
+
+update_MERGE()
+{
+    local dst src
+
+    dst="$1"
+    src="$MERGE_LOCAL_HASH"
+
+    git update-ref "refs/remotes/$OPT_HOST/$MERGE_LOCAL_NAME" "$src"
+    git checkout -q -B "$MERGE_REMOTE_BRANCH" "$dst"
+    git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_NAME"
+}
+
+prepare_REBASE()
+{
+    local tmp
+
+    shift
+    if test "$#" -eq 0
+    then set HEAD
+    fi
+    REBASE_HEAD=$(git rev-parse --revs-only "$@" | sed -e '/^\^[0-9a-f]\+$/d')
+    REBASE_LIMIT=$(git rev-parse --revs-only "$@" | sed -e '/^[0-9a-f]\+$/d' -e 's/\^//')
+    if test -z "$REBASE_HEAD"
+    then
+        echo "Cannot resolve source spec: $src"
+        exit 1
+    else
+        tmp=$(git rev-parse --revs-only "$REBASE_HEAD")
+        if test -z "$tmp"
+        then
+            echo "Cannot resolve source spec: $src"
+            exit 1
+        fi
+    fi
+    if test -n "$REBASE_LIMIT"
+    then
+        tmp=$(git rev-parse --revs-only "$REBASE_LIMIT")
+        if test -z "$tmp"
+        then
+            echo "Cannot resolve source spec: $src"
+            exit 1
+        fi
+    fi
+    PUSH_HASH="$REBASE_HEAD"
+}
+
+update_REBASE()
+{
+    local dst src changed
+
+    dst="$1"
+    src="$2"
+
+    git branch -f rebase "$REBASE_HEAD"
+    if test -n "$REBASE_LIMIT"
+    then
+        git rebase --keep-empty --verbose --onto "$dst" "$REBASE_LIMIT" rebase
+        changed=$(git cherry -v HEAD "$REBASE_HEAD" "$REBASE_LIMIT" | grep '^+' || true)
+    else
+        git rebase --keep-empty --verbose "$dst" rebase
+        changed=$(git cherry -v HEAD "$REBASE_HEAD" | grep '^+' || true)
+    fi
+    if test -n "$changed"
+    then
+        echo "Commits changed during rebase:"
+        echo "--------------------------"
+        echo "$changed" | sed 's/+ \([0-9a-f]\{7\}\)[0-9a-f]\+ /\1 /'
+        echo "--------------------------"
+        echo "They will cause conflicts at later rebases. Update your branch and try again"
+        exit 1
+    fi
+}
+
+finalize()
+{
+    git update-ref -d refs/push-update/remote || true
+    git update-ref -d refs/push-update/remote2 || true
+    git update-ref -d refs/push-update/merged || true
+    rm -rf "$REPO_DIR/update-tmp-repo"
+    rmdir "$REPO_DIR" || true
+}
+
+OPTS_SPEC="\
+git push-update [options] <remoteName> <remoteBranch>
+
+--
+h,help      Help
+
+type!=      Update type to use [merge(default),rebase]
+host!=      Host to be mentioned in merge message (hostname by default)"
+
+# git push-update remoteName branch
+eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- "$@")"
+OPT_HOST=
+OPT_TYPE=merge
+while test "$1" != "--"
+do
+    case "$1" in
+    --help|-h) exit;;
+    --host) OPT_HOST="$2"
+        shift;;
+    --type) OPT_TYPE="$2"
+        shift;;
+    *) echo "Unexpected option: $1" >/dev/stderr
+        exit 1;;
+    esac
+    shift
+done
+
+if test $# -eq 1
+then
+    eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- -h)"
+    exit
+fi
+
+case "$OPT_TYPE" in
+merge) UPDATE_TYPE=MERGE;;
+rebase) UPDATE_TYPE=REBASE;;
+*) echo "Unknown update type: $type"
+    exit 1;;
+esac
+
+if test -z "$OPT_HOST"
+then
+    OPT_HOST=$(hostname -s)
+fi
+
+REMOTE="$2"
+REMOTE_BRANCH="$3"
+
+shift 3
+
+REPO_DIR=$(mktemp -d)
+trap finalize 0
+REPO="$REPO_DIR/update-tmp-repo"
+git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote
+prepare_$UPDATE_TYPE "$REMOTE_BRANCH" "$@"
+git clone -q --no-checkout --shared . "$REPO"
+git push -q "$REPO" +"$PUSH_HASH":refs/heads/local +refs/push-update/remote:refs/heads/remote
+(
+    cd "$REPO"
+    git config core.sparseCheckout true
+    echo "!/**" >".git/info/sparse-checkout"
+    # it will add the files itself
+    # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
+    git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
+    git checkout -f -q remote
+    update_$UPDATE_TYPE remote local
+    git push -q origin +HEAD:refs/push-update/merged
+)
+
+if git -c advice.pushFetchFirst=false push -q "$REMOTE" refs/push-update/merged:"$REMOTE_BRANCH"
+then :
+else
+    git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote2
+    old=$(git rev-parse refs/push-update/remote)
+    new=$(git rev-parse refs/push-update/remote2)
+    mrg=$(git rev-parse refs/push-update/merged)
+    if test "$new" != "$mrg"
+    then
+        if test "$old" != "$new"; then
+            echo "Remote branch was updated by other user during preparing new updates"
+            echo "please retry"
+        fi
+        exit 1
+    fi
+fi
