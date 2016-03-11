@@ -42,7 +42,7 @@ update_MERGE()
     src="$MERGE_LOCAL_HASH"
 
     git update-ref "refs/remotes/$OPT_HOST/$MERGE_LOCAL_NAME" "$src"
-    git checkout -q --force -B "$MERGE_REMOTE_BRANCH" "$dst"
+    git checkout -q -B "$MERGE_REMOTE_BRANCH" "$dst"
     git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_NAME"
 }
 
@@ -87,13 +87,13 @@ update_REBASE()
     dst="$1"
     src="$2"
 
-    git checkout -f -B rebase "$REBASE_HEAD"
+    git branch -f rebase "$REBASE_HEAD"
     if test -n "$REBASE_LIMIT"
     then
-        git rebase --keep-empty --verbose --onto "$dst" "$REBASE_LIMIT"
+        git rebase --keep-empty --verbose --onto "$dst" "$REBASE_LIMIT" rebase
         changed=$(git cherry -v HEAD "$REBASE_HEAD" "$REBASE_LIMIT" | grep '^+' || true)
     else
-        git rebase --keep-empty --verbose "$dst"
+        git rebase --keep-empty --verbose "$dst" rebase
         changed=$(git cherry -v HEAD "$REBASE_HEAD" | grep '^+' || true)
     fi
     if test -n "$changed"
@@ -180,6 +180,7 @@ git push -q "$REPO" +"$PUSH_HASH":refs/heads/local +refs/push-update/remote:refs
     # it will add the files itself
     # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
     git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
+    git checkout -f -q remote
     update_$UPDATE_TYPE remote local
     git push -q origin +HEAD:refs/push-update/merged
 )
