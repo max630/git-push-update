@@ -10,16 +10,78 @@ checkout_from_quote()
         -e 's/^/\//'
 }
 
+# remote specified ==> use it
+# not specified ==> take remote specified for HEAD, if it is defined
+# always error if the tracking branch does not contain branch to push
+resolve_remote_branch()
+{
+    local cmd remotename0 branchname branchname_full
+
+    remotename0="$1"
+    if test -n "$remotename0"
+    then
+        REMOTE_REF=$(git rev-parse --symbolic-full-name "$remotename0")
+        case "$REMOTE_REF" in
+        refs/remotes/*);;
+        *)
+            echo "Invalid remote: $remotename0"
+            echo 1
+            ;;
+        esac
+        cmd=$(git for-each-ref --shell --format='
+            if test "$REMOTE_REF" -eq %(upstream)
+            then
+                if test -n "$branchname"
+                then 
+                    echo "Both \"$branchname\" and "%(refname:short)" track $REMOTE_REF"
+                    exit 1
+                fi
+                branchname=%(refname:short)
+            fi
+            ' /refs/heads)
+        eval "$cmd"
+        if test -z "$branchname"
+        then
+            echo "No local branch track $REMOTE_REF"
+            exit 1
+        fi
+    else
+        branchname_full=$(git rev-parse --symbolic-full-name HEAD)
+        if test -z "$branchname_full"
+        then
+            echo "Cannot find remote branch with detached head"
+            exit 1
+        fi
+        cmd=$(git for-each-ref --shell --format='
+            branchname=%(refname:short)
+            REMOTE_REF=%(upstream)
+            ' "$branchname_full")
+        eval "$cmd"
+    fi
+    if ! git merge-base --is-ancestor "$PUSH_HASH" "$branchname"
+    then
+        echo "Commit to push $PUSH_HASH does not belong to branch tracking $REMOTE_REF"
+        echo "Suspect mistake"
+        exit 1
+    fi
+    REMOTE=$(git config branch."$branchname".pushRemote || git config branch."$branchname".remote)
+    REMOTE_BRANCH=$(git config branch."$branchname".merge)
+    if test -z "$REMOTE" -o -z "$REMOTE_BRANCH"
+    then
+        echo "Failed to find remote info for $branchname: $REMOTE,$REMOTE_BRANCH"
+        exit 1
+    fi
+}
+
 prepare_MERGE()
 {
     local src
 
-    MERGE_REMOTE_BRANCH="$1"
-    if test -n "$2"
-    then src="$2"
+    if test -n "$1"
+    then src="$1"
     else src=HEAD
     fi
-    if test "$#" -gt 2
+    if test "$#" -gt 1
     then
         echo "Only 1 source branch is allowed for merge type"
         exit 1
@@ -32,6 +94,11 @@ prepare_MERGE()
     fi
     MERGE_LOCAL_HASH=$(git rev-parse --revs-only "$src")
     PUSH_HASH="$MERGE_LOCAL_HASH"
+}
+
+prepare2_MERGE()
+{
+    MERGE_REMOTE_BRANCH="$1"
 }
 
 update_MERGE()
@@ -50,7 +117,6 @@ prepare_REBASE()
 {
     local tmp
 
-    shift
     if test "$#" -eq 0
     then set HEAD
     fi
@@ -78,6 +144,11 @@ prepare_REBASE()
         fi
     fi
     PUSH_HASH="$REBASE_HEAD"
+}
+
+prepare2_REBASE()
+{
+    :
 }
 
 update_REBASE()
@@ -117,22 +188,26 @@ finalize()
 }
 
 OPTS_SPEC="\
-git push-update [options] <remoteName> <remoteBranch>
+git push-update [options] <src>
 
 --
 h,help      Help
 
 type!=      Update type to use [merge(default),rebase]
+dest!=      Remote reference name to push to (default is tracked by current branch)
 host!=      Host to be mentioned in merge message (hostname by default)"
 
 # git push-update remoteName branch
 eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- "$@")"
 OPT_HOST=
 OPT_TYPE=merge
+OPT_DEST=
 while test "$1" != "--"
 do
     case "$1" in
     --help|-h) exit;;
+    --dest) OPT_DEST="$2"
+        shift;;
     --host) OPT_HOST="$2"
         shift;;
     --type) OPT_TYPE="$2"
@@ -161,16 +236,15 @@ then
     OPT_HOST=$(hostname -s)
 fi
 
-REMOTE="$2"
-REMOTE_BRANCH="$3"
-
-shift 3
+shift
 
 REPO_DIR=$(mktemp -d)
 trap finalize 0
 REPO="$REPO_DIR/update-tmp-repo"
+prepare_$UPDATE_TYPE "$@"
+resolve_remote_branch "$OPT_DEST"
+prepare2_$UPDATE_TYPE "$REMOTE_BRANCH"
 git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote
-prepare_$UPDATE_TYPE "$REMOTE_BRANCH" "$@"
 git clone -q --no-checkout --shared . "$REPO"
 git push -q "$REPO" +"$PUSH_HASH":refs/heads/local +refs/push-update/remote:refs/heads/remote
 (

@@ -30,7 +30,7 @@ echo "Test directory: $DIR"
         GIT_EDITOR="$SRCDIR/t/testeditor.sh"
         export GIT_EDITOR
         export GIT_EDITOR_CASE=wait
-        "$SRCDIR/git-push-update" origin master || true
+        "$SRCDIR/git-push-update" HEAD || true
         git log --oneline --decorate --graph --all | cat
     )
 )

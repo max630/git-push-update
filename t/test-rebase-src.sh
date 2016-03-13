@@ -41,12 +41,12 @@ commit()
         commit 55
         commit 60
         commit 65
-        "$SRCDIR/git-push-update" --type=rebase origin master HEAD'^!'
-        "$SRCDIR/git-push-update" --type=rebase origin master ^HEAD~5 HEAD~3
-        "$SRCDIR/git-push-update" --type=rebase origin master HEAD~7
+        "$SRCDIR/git-push-update" --type=rebase HEAD'^!'
+        "$SRCDIR/git-push-update" --type=rebase ^HEAD~5 HEAD~3
+        "$SRCDIR/git-push-update" --type=rebase HEAD~7
         git log --oneline --decorate --graph --all | cat
     )
 )
 
-rm -rf "$DIR/origin"
-rmdir "$DIR"
+#rm -rf "$DIR/origin"
+#rmdir "$DIR"

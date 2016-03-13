@@ -24,7 +24,7 @@ export GIT_EDITOR=true
     (
         cd clone
         git commit -q --allow-empty -m 'to merge as HEAD'
-        "$SRCDIR/git-push-update" --type=merge origin master HEAD
+        "$SRCDIR/git-push-update" --type=merge HEAD
         git merge -q origin/master
     )
     git checkout -q master
@@ -35,7 +35,7 @@ export GIT_EDITOR=true
         git commit -q --allow-empty -m 'to merge by older name'
         git branch -f b1
         git commit -q --allow-empty -m 'to discard'
-        "$SRCDIR/git-push-update" --type=merge origin master b1
+        "$SRCDIR/git-push-update" --type=merge b1
         git reset -q --hard origin/master
     )
     git checkout -q master
@@ -45,7 +45,7 @@ export GIT_EDITOR=true
         cd clone
         git commit -q --allow-empty -m 'to not merge by ref'
         git commit -q --allow-empty -m 'to discard'
-        ! "$SRCDIR/git-push-update" --type=merge origin master HEAD~1
+        ! "$SRCDIR/git-push-update" --type=merge HEAD~1
         git log --oneline --decorate --graph --all | cat
         git reset -q --hard origin/master
     )
