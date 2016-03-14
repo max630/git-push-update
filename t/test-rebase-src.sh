@@ -2,8 +2,9 @@
 
 set -e
 
-SRCDIR=$(pwd)
-export SRCDIR
+SELF_PATH=$(realpath "$0")
+TDIR=$(dirname "$SELF_PATH")
+. "$TDIR/test-lib.sh"
 
 DIR=$(mktemp -d)
 mkdir "$DIR/origin"

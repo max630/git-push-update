@@ -2,8 +2,9 @@
 
 set -e
 
-SRCDIR=$(pwd)
-export SRCDIR
+SELF_PATH=$(realpath "$0")
+TDIR=$(dirname "$SELF_PATH")
+. "$TDIR/test-lib.sh"
 
 DIR=$(mktemp -d)
 mkdir "$DIR/origin"
@@ -26,7 +27,7 @@ echo "Test directory: $DIR"
         cd clone
         echo line1 >>simplefile
         git commit -q -m edits -a
-        GIT_EDITOR="$SRCDIR/testeditor.sh"
+        GIT_EDITOR="$SRCDIR/t/testeditor.sh"
         export GIT_EDITOR
         export GIT_EDITOR_CASE=wait
         "$SRCDIR/git-push-update" origin master || true
