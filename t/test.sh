@@ -79,19 +79,20 @@ file"
         git commit -q -m "edit line7"
         git revert --no-edit HEAD
         "$SRCDIR/git-push-update" --type="$TYPE" HEAD
-        #git reset --hard origin/master
+        git reset --hard origin/master
+    )
+    git checkout -q -B branch1 master
+    git commit -q --allow-empty -m advance
+    git checkout -q --detach branch1
+    (
+        cd clone
+        git commit -q --allow-empty -m 'nothing'
+        ! "$SRCDIR/git-push-update" --type="$TYPE" --dest=origin/branch1 HEAD
+        # git checkout -q -B branch1 master
+        # git branch -q -u origin/branch1
+        # "$SRCDIR/git-push-update" --type="$TYPE" --dest=origin/branch1 HEAD
         git log --oneline --decorate --graph --all | cat
     )
-    # git checkout -q -B branch1 master
-    # git commit -q --allow-empty -m advance
-    # git checkout -q --detach branch1
-    #(
-    #    cd clone
-    #    git commit -q --allow-empty -m 'nothing'
-    #    "$SRCDIR/git-push-update" --type="$TYPE" --dest=origin/branch1 HEAD
-    #    # git pull -q origin branch1
-    #    git log --oneline --decorate --graph --all | cat
-    #)
 )
 
 rm -rf "$DIR/origin"
