@@ -32,8 +32,9 @@ Some kind of cheatsheet which provides analogs for centralized VCS, svn here for
 |-------------|---|-------------------------|--------------------------|
 |Start working|`svn checkout <url>`|`git clone <url>`| *same* |
 |Make your changes|Edit files|Edit files, `git commit/revert/reset`| *same* |
-|Update with progress|`svn update`|`git pull --merge`|`git pull --rebase`|
 |Submit one or several files|`svn commit <file>...`|N/A|`git commit <file>... && git ` **`push-update`** `--type=rebase 'HEAD^!'` <sup>1</sup>|
 |Submit all changes|`svn commit`|`git ` **`push-update`** ` --type=merge`|`git ` **`push-update`** ` --type=rebase`|
+|Update with progress|`svn update`|`git pull --merge`|`git pull --rebase`|
+|Discard local changes|`svn revert`|`git fetch && git reset --hard origin/master`| *same* |
 
 1) if you have changed and committed same file before already in this local branch and have not pushed it then that change will not be pushed, unlike svn. It can be what you want or what you don't want.
