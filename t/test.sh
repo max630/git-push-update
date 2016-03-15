@@ -10,7 +10,7 @@ DIR=$(mktemp -d)
 mkdir "$DIR/origin"
 echo "Test directory: $DIR"
 
-export TYPE=rebase
+export TYPE=merge
 export GIT_EDITOR=true
 
 (

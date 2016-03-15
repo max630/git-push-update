@@ -58,9 +58,9 @@ resolve_remote_branch()
             ' "$branchname_full")
         eval "$cmd"
     fi
-    if ! git merge-base --is-ancestor "$PUSH_HASH" "$branchname"
+    if ! git merge-base --is-ancestor "$UPDATE_HEAD" "$branchname"
     then
-        echo "Commit to push $PUSH_HASH does not belong to branch tracking $REMOTE_REF"
+        echo "Commit to push $UPDATE_HEAD does not belong to branch tracking $REMOTE_REF"
         echo "Suspect mistake"
         exit 1
     fi
@@ -93,12 +93,21 @@ prepare_MERGE()
         exit 1
     fi
     MERGE_LOCAL_HASH=$(git rev-parse --revs-only "$src")
-    PUSH_HASH="$MERGE_LOCAL_HASH"
+    UPDATE_HEAD="$MERGE_LOCAL_HASH"
 }
 
 prepare2_MERGE()
 {
-    MERGE_REMOTE_BRANCH="$1"
+    MERGE_REMOTE_BRANCH="$REMOTE_BRANCH"
+}
+
+ff_possible_MERGE()
+{
+    local actual_lp expect_lp
+
+    actual_lp=$(git log --first-parent --pretty=format:%P refs/push-update/remote.."$UPDATE_HEAD"|tail -1|cut -d' ' -f1)
+    expect_lp=$(git rev-parse --revs-only refs/push-update/remote)
+    test "$actual_lp" = "$expect_lp"
 }
 
 update_MERGE()
@@ -143,12 +152,24 @@ prepare_REBASE()
             exit 1
         fi
     fi
-    PUSH_HASH="$REBASE_HEAD"
+    UPDATE_HEAD="$REBASE_HEAD"
 }
 
 prepare2_REBASE()
 {
-    :
+    local limit
+
+    limit="${REBASE_LIMIT:-refs/push-update/remote}"
+    if git log --pretty=format:%p:%s "$limit".."$UPDATE_HEAD"|grep '^[^:]* [^:]*:'
+    then
+        echo "Cannot rebase merge commits" >&2
+        exit 1
+    fi
+}
+
+ff_possible_REBASE()
+{
+    test -z "$REBASE_LIMIT" && git merge-base --is-ancestor refs/push-update/remote "$UPDATE_HEAD"
 }
 
 update_REBASE()
@@ -243,23 +264,29 @@ trap finalize 0
 REPO="$REPO_DIR/update-tmp-repo"
 prepare_$UPDATE_TYPE "$@"
 resolve_remote_branch "$OPT_DEST"
-prepare2_$UPDATE_TYPE "$REMOTE_BRANCH"
 git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote
-git clone -q --no-checkout --shared . "$REPO"
-git push -q "$REPO" +"$PUSH_HASH":refs/heads/local +refs/push-update/remote:refs/heads/remote
-(
-    cd "$REPO"
-    git config core.sparseCheckout true
-    echo "!/**" >".git/info/sparse-checkout"
-    # it will add the files itself
-    # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
-    git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
-    git checkout -f -q remote
-    update_$UPDATE_TYPE remote local
-    git push -q origin +HEAD:refs/push-update/merged
-)
+prepare2_$UPDATE_TYPE
+if ff_possible_$UPDATE_TYPE
+then
+    PUSH_COMMIT="$UPDATE_HEAD"
+else
+    git clone -q --no-checkout --shared . "$REPO"
+    git push -q "$REPO" +"$UPDATE_HEAD":refs/heads/local +refs/push-update/remote:refs/heads/remote
+    (
+        cd "$REPO"
+        git config core.sparseCheckout true
+        echo "!/**" >".git/info/sparse-checkout"
+        # it will add the files itself
+        # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
+        git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
+        git checkout -f -q remote
+        update_$UPDATE_TYPE remote local
+        git push -q origin +HEAD:refs/push-update/merged
+    )
+    PUSH_COMMIT=refs/push-update/merged
+fi
 
-if git -c advice.pushFetchFirst=false push -q "$REMOTE" refs/push-update/merged:"$REMOTE_BRANCH"
+if git -c advice.pushFetchFirst=false push -q "$REMOTE" "$PUSH_COMMIT":"$REMOTE_BRANCH"
 then :
 else
     git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote2

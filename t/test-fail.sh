@@ -18,9 +18,10 @@ echo "Test directory: $DIR"
     git add .
     git commit -q -m 'files added'
     git clone -q . clone
+    git commit -q --allow-empty -m advance1
     (
         sleep 1
-        git commit -q --allow-empty -m advance
+        git commit -q --allow-empty -m advance2
         git checkout -q --detach master
     ) &
     (
