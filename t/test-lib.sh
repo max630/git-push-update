@@ -3,6 +3,17 @@
 SRCDIR=$(dirname "$TDIR")
 export SRCDIR
 
+must_fail()
+{
+    if "$@"
+    then
+        echo "Must have failed" >&2
+        exit 1
+    else
+        echo "Expected failure ignored"
+    fi
+}
+
 if ! command -v mktemp
 then
     mktemp()
