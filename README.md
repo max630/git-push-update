@@ -15,8 +15,8 @@ This script makes centralized workflow easier. No need to pull before push anymo
 
 Can be:
 
- - **`rebase`** `<source>` can be empty, single commit or a range. If `<source>` is empty it is treated as `HEAD`. For single commit everything unknown to remote is rebased. For range - only the specified range. There is an additional validation that rebased commits are equivalent to older, so you can repeat rebase without conflict. If the commit is changes during rebase (despite of all file changes were merged automaticallly) the update aborts and suggests to update manually.
- - **`merge`** `<source>` can be either empty, or name of local branch. If it's empty then the currently checked out branch is taken. If HEAD is detached or `<source>` is not a branch but expression which resolves to hash merge fails, because the branch name is needed for the merge message.
+ - **`rebase`** `<source>` can single commit or a range. If `<source>` is empty it is treated as `HEAD`. For single commit everything unknown to remote is rebased. For range - only the specified range. There is an additional validation that rebased commits are equivalent to older, so you can repeat rebase without conflict. If the commit is changes during rebase (despite of all file changes were merged automaticallly) the update aborts and suggests to update manually.
+ - **`merge`** `<source>` can be either HEAD, or name of local branch. If it's empty then the currently checked out branch is taken. If specified HEAD is detached or `<source>` is not a branch but expression which resolves to hash merge fails, because the branch name is needed for the merge message.
 
 **NOTE**: mixing merges and rebases might make sense in some workflow, but you should know what are you doing.
 
