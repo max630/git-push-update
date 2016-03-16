@@ -159,6 +159,10 @@ prepare2_REBASE()
 {
     local limit
 
+    if test -z "$REBASE_LIMIT" -a "$OPT_NOFORKPOINT" != yes
+    then REBASE_LIMIT=$(git merge-base --fork-point "$REMOTE_REF" "$UPDATE_HEAD")
+    fi
+
     limit="${REBASE_LIMIT:-refs/push-update/remote}"
     if git log --pretty=format:%p:%s "$limit".."$UPDATE_HEAD"|grep '^[^:]* [^:]*:'
     then
@@ -216,13 +220,15 @@ h,help      Help
 
 type!=      Update type to use [merge(default),rebase]
 dest!=      Remote reference name to push to (default is tracked by current branch)
-host!=      Host to be mentioned in merge message (hostname by default)"
+host!=      Host to be mentioned in merge message (hostname by default)
+no-fork-point! Don't look for forkpoint while rebasing without explicit limit"
 
 # git push-update remoteName branch
 eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- "$@")"
 OPT_HOST=
 OPT_TYPE=merge
 OPT_DEST=
+OPT_NOFORKPOINT=no
 while test "$1" != "--"
 do
     case "$1" in
@@ -233,6 +239,7 @@ do
         shift;;
     --type) OPT_TYPE="$2"
         shift;;
+    --no-fork-point) OPT_NOFORKPOINT="yes";;
     *) echo "Unexpected option: $1" >/dev/stderr
         exit 1;;
     esac
