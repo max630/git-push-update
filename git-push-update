@@ -182,10 +182,10 @@ update_REBASE()
     git branch -f rebase "$REBASE_HEAD"
     if test -n "$REBASE_LIMIT"
     then
-        git rebase --keep-empty --verbose --onto "$dst" "$REBASE_LIMIT" rebase
+        git rebase --keep-empty --onto "$dst" "$REBASE_LIMIT" rebase
         changed=$(git cherry -v HEAD "$REBASE_HEAD" "$REBASE_LIMIT" | grep '^+' || true)
     else
-        git rebase --keep-empty --verbose "$dst" rebase
+        git rebase --keep-empty "$dst" rebase
         changed=$(git cherry -v HEAD "$REBASE_HEAD" | grep '^+' || true)
     fi
     if test -n "$changed"
@@ -286,7 +286,7 @@ else
     PUSH_COMMIT=refs/push-update/merged
 fi
 
-if git -c advice.pushFetchFirst=false push -q "$REMOTE" "$PUSH_COMMIT":"$REMOTE_BRANCH"
+if git -c advice.pushFetchFirst=false push "$REMOTE" "$PUSH_COMMIT":"$REMOTE_BRANCH"
 then :
 else
     git fetch -q "$REMOTE" +"$REMOTE_BRANCH":refs/push-update/remote2
