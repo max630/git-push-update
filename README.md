@@ -5,11 +5,9 @@ This script makes centralized workflow easier. No need to pull before push anymo
 
 ###Usage:
 
-      git push-update [options] <remoteName> <remoteBranch> [<source>...]
+      git push-update [options] <source>...
 
-`<remoteName>` is the name of registered remote repository where you want to push your changes to. <remoteBranch> is branch which you want to update with your commits.
-
-**NOTE**: Be careful to not to push to wrong branch, if it succeeds without conflict then there is no additional check, the commits will go there. This is especially bad for **`merge`** type, because it may create incorrect ancestry relation which look ugly in revision graph and will affect later merges.
+`<source>` are the commit which you wish to push, it depends on update type what is accepted there.
 
 ###Options:
 
@@ -24,6 +22,8 @@ Can be:
 
 **`--host=<type>`** - name of "remote" for merge message. Should indicate the current repository. For collaboration in a project with several people it can be your nickname for example. By default hostname is used.
 
+**`--dest=<dest>`** - remote branch to push to, as remote reference (like `origin/master` or `refs/remotes/origin/master`). Must have tracking branch which contains the commits you are going to push. This prevents rebasing and merging to wrong remote branch, which would be very damaging because whole content of current branch would go there.
+
 ##CVCS vs `push-update`
 
 Some kind of cheatsheet which provides analogs for centralized VCS, svn here for example which should be most familiar for everybody.
@@ -35,6 +35,8 @@ Some kind of cheatsheet which provides analogs for centralized VCS, svn here for
 |Submit one or several files|`svn commit <file>...`|N/A|`git commit <file>... && git ` **`push-update`** `--type=rebase 'HEAD^!'` <sup>1</sup>|
 |Submit all changes|`svn commit`|`git ` **`push-update`** ` --type=merge`|`git ` **`push-update`** ` --type=rebase`|
 |Update with progress|`svn update`|`git pull --merge`|`git pull --rebase`|
-|Discard local changes|`svn revert`|`git fetch && git reset --hard origin/master`| *same* |
+|Discard your local changes|`svn revert`|`git fetch && git reset --hard origin/master` <sub>2</sup>| *same* |
 
 1) if you have changed and committed same file before already in this local branch and have not pushed it then that change will not be pushed, unlike svn. It can be what you want or what you don't want.
+
+2) This also updates with master progress. If it is undesirable you should reset to an older master commit.
