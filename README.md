@@ -26,7 +26,7 @@ Can be:
 
 ##CVCS vs `push-update`
 
-Some kind of cheatsheet which provides analogs for centralized VCS, svn here for example which should be most familiar for everybody.
+Some kind of cheatsheet which provides analogs for centralized VCS, svn here for example.
 
 |             |svn|`push-update` with merges|`push-update` with rebases|
 |-------------|---|-------------------------|--------------------------|
@@ -35,7 +35,7 @@ Some kind of cheatsheet which provides analogs for centralized VCS, svn here for
 |Submit one or several files|`svn commit <file>...`|N/A|`git commit <file>... && git ` **`push-update`** `--type=rebase 'HEAD^!'` <sup>1</sup>|
 |Submit all changes|`svn commit`|`git ` **`push-update`** ` --type=merge`|`git ` **`push-update`** ` --type=rebase`|
 |Update with progress|`svn update`|`git pull --merge`|`git pull --rebase`|
-|Discard your local changes|`svn revert`|`git fetch && git reset --hard origin/master` <sub>2</sup>| *same* |
+|Discard your local changes|`svn revert`|`git fetch && git reset --hard origin/master` <sup>2</sup>| *same* |
 
 1) if you have changed and committed same file before already in this local branch and have not pushed it then that change will not be pushed, unlike svn. It can be what you want or what you don't want.
 
