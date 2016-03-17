@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# substitute for environments where it's not available
+
+case "$1" in
+/*) printf "%s\n" "$1";;
+*) echo "Use only absolute paths: $1"
+    exit 1
+esac
