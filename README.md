@@ -24,6 +24,8 @@ Can be:
 
 **`--dest=<dest>`** - remote branch to push to, as remote reference (like `origin/master` or `refs/remotes/origin/master`). Must have tracking branch which contains the commits you are going to push. This prevents rebasing and merging to wrong remote branch, which would be very damaging because whole content of current branch would go there.
 
+**`--no-fork-point`** - for *rebase* type, forkpoint is searched, so that rebased upstream is handled nicely. This flag disables it.
+
 ##CVCS vs `push-update`
 
 Some kind of cheatsheet which provides analogs for centralized VCS, svn here for example.
