@@ -3,14 +3,17 @@
 SRCDIR=$(dirname "$TDIR")
 export SRCDIR
 
+die()
+{
+    echo "$@" >&2
+    exit 1
+}
+
 must_fail()
 {
     if "$@"
-    then
-        echo "Must have failed" >&2
-        exit 1
-    else
-        echo "Expected failure ignored"
+    then die "Must have failed" >&2
+    else echo "Expected failure ignored"
     fi
 }
 
@@ -26,13 +29,9 @@ then
             then
                 echo "$res"
                 return
-            else
-                echo "Fail to create temporary directory" >&2
-                exit 1
+            else die "Fail to create temporary directory"
             fi
-        else
-            echo "Unsupported mktemp invocation: $@" >&2
-            exit 1
+        else die "Unsupported mktemp invocation: $@"
         fi
     }
 fi
