@@ -14,7 +14,7 @@ must_fail()
     fi
 }
 
-if ! command -v mktemp
+if ! command -v mktemp >/dev/null
 then
     mktemp()
     {

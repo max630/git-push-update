@@ -2,6 +2,29 @@
 
 set -e
 
+if ! command -v mktemp >/dev/null
+then
+    mktemp()
+    {
+        local res
+        if test "$#" -eq 1 -a "$1" = "-d"
+        then
+            res="$TMP/$RANDOM"
+            if mkdir "$res"
+            then
+                printf "%s\n" "$res"
+                return
+            else
+                echo "Fail to create temporary directory" >&2
+                exit 1
+            fi
+        else
+            echo "Unsupported mktemp invocation: $@" >&2
+            exit 1
+        fi
+    }
+fi
+
 checkout_from_quote()
 {
     sed -e 's/^"\(.*\)"$/\1/' \
@@ -261,7 +284,7 @@ esac
 
 if test -z "$OPT_HOST"
 then
-    OPT_HOST=$(hostname -s)
+    OPT_HOST=$(hostname)
 fi
 
 shift
