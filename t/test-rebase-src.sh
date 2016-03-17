@@ -46,7 +46,9 @@ commit()
         "$SRCDIR/git-push-update" --type=rebase HEAD~7
         git log --oneline --decorate --graph --all | cat
     )
+    test "$?" -eq 0
 )
+test "$?" -eq 0
 
 rm -rf "$DIR/origin"
 rmdir "$DIR"

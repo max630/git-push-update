@@ -313,6 +313,7 @@ else
         update_$UPDATE_TYPE remote local
         git push -q origin +HEAD:refs/push-update/merged
     )
+    test "$?" -eq 0
     PUSH_COMMIT=refs/push-update/merged
 fi
 

@@ -27,6 +27,7 @@ export GIT_EDITOR=true
         "$SRCDIR/git-push-update" --type=merge HEAD
         git merge -q origin/master
     )
+    test "$?" -eq 0
     git checkout -q master
     git commit -q --allow-empty -m 'advance'
     git checkout -q --detach master
@@ -38,6 +39,7 @@ export GIT_EDITOR=true
         "$SRCDIR/git-push-update" --type=merge b1
         git reset -q --hard origin/master
     )
+    test "$?" -eq 0
     git checkout -q master
     git commit -q --allow-empty -m 'advance'
     git checkout -q --detach master
@@ -49,7 +51,9 @@ export GIT_EDITOR=true
         git log --oneline --decorate --graph --all | cat
         git reset -q --hard origin/master
     )
+    test "$?" -eq 0
 )
+test "$?" -eq 0
 
 rm -rf "$DIR/origin"
 rmdir "$DIR"

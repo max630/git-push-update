@@ -35,6 +35,7 @@ export GIT_EDITOR=true
             exit 1
         }
     )
+    test "$?" -eq 0
     (
         cd clone
         sed -i file -e 's/^21$/21e/'
@@ -49,6 +50,7 @@ export GIT_EDITOR=true
             exit 1
         }
     )
+    test "$?" -eq 0
     git checkout -q master
     git commit -q --allow-empty -m advance
     git checkout -q --detach master
@@ -68,6 +70,7 @@ export GIT_EDITOR=true
             exit 1
         }
     )
+    test "$?" -eq 0
     git checkout -q master
     git commit -q --allow-empty -m advance
     git checkout -q --detach master
@@ -86,4 +89,6 @@ export GIT_EDITOR=true
         }
         git log --oneline --graph --decorate --all | cat
     )
+    test "$?" -eq 0
 )
+test "$?" -eq 0

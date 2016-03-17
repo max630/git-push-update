@@ -46,6 +46,7 @@ file"
         "$SRCDIR/git-push-update" --type="$TYPE" HEAD
         git reset --hard origin/master
     )
+    test "$?" -eq 0
     git checkout -q master
     git commit -q --allow-empty -m 'advance'
     git checkout -q --detach master
@@ -57,6 +58,7 @@ file"
         "$SRCDIR/git-push-update" --type="$TYPE" HEAD
         git reset --hard origin/master
     )
+    test "$?" -eq 0
     git checkout -q master
     git commit -q --allow-empty -m advance
     git checkout -q --detach master
@@ -67,6 +69,7 @@ file"
         "$SRCDIR/git-push-update" --type="$TYPE" HEAD
         git reset --hard origin/master
     )
+    test "$?" -eq 0
     git checkout -q master
     sed -i 2edit -e s/3/3edited/
     git add 2edit
@@ -81,6 +84,7 @@ file"
         "$SRCDIR/git-push-update" --type="$TYPE" HEAD
         git reset --hard origin/master
     )
+    test "$?" -eq 0
     git checkout -q -B branch1 master
     git commit -q --allow-empty -m advance
     git checkout -q --detach branch1
@@ -93,7 +97,9 @@ file"
         # "$SRCDIR/git-push-update" --type="$TYPE" --dest=origin/branch1 HEAD
         git log --oneline --decorate --graph --all | cat
     )
+    test "$?" -eq 0
 )
+test "$?" -eq 0
 
 rm -rf "$DIR/origin"
 rmdir "$DIR"
