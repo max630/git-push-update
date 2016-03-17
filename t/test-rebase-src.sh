@@ -48,5 +48,5 @@ commit()
     )
 )
 
-#rm -rf "$DIR/origin"
-#rmdir "$DIR"
+rm -rf "$DIR/origin"
+rmdir "$DIR"
