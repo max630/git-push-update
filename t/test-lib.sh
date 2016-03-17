@@ -35,3 +35,22 @@ then
         fi
     }
 fi
+
+if ! command -v seq >/dev/null >/dev/null
+then
+    seq()
+    {
+        local i
+
+        if test "$#" -ne 2
+        then die "Unexpected seq call: $@"
+        fi
+
+        i="$1"
+        while test "$i" -le "$2"
+        do
+            printf "%d\n" "$i"
+            i=$(expr "$i" + 1)
+        done
+    }
+fi
