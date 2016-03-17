@@ -19,12 +19,12 @@ export GIT_EDITOR=true
     git commit -q --allow-empty -m init
     touch simplefile
     touch "space file"
-    touch "trailing space file "
+    #touch "trailing space file "
     touch " leading space file"
-    touch "quote\"file"
+    #touch "quote\"file"
     touch "sinlequote'file"
-    touch "newline
-file"
+    #touch "newline
+#file"
     seq 1 9 >2edit
     git add .
     git commit -q -m 'files added'
@@ -36,12 +36,12 @@ file"
         cd clone
         echo line1 >>simplefile
         echo line1 >>"space file"
-        echo line1 >>"trailing space file "
+        #echo line1 >>"trailing space file "
         echo line1 >>" leading space file"
-        echo line1 >>"quote\"file"
+        #echo line1 >>"quote\"file"
         echo line1 >>"sinlequote'file"
-        echo line1 >>"newline
-file"
+        #echo line1 >>"newline
+#file"
         git commit -q -m edits -a
         "$SRCDIR/git-push-update" --type="$TYPE" HEAD
         git reset --hard origin/master
