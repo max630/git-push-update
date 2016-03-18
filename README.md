@@ -5,7 +5,7 @@ This script makes centralized workflow easier. No need to pull before push anymo
 
 ###Usage:
 
-      git push-update [options] <source>...
+      git-push-update [options] <source>...
 
 `<source>` are the commit which you wish to push, it depends on update type what is accepted there.
 
