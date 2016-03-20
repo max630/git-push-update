@@ -45,7 +45,7 @@ Some kind of cheatsheet which provides analogs for centralized VCS, svn here for
 |-------------|---|-------------------------|--------------------------|
 |Start working|`svn checkout <url>`|`git clone <url>`| *same* |
 |Make your changes|Edit files|Edit files, `git commit/revert/reset`| *same* |
-|Update with progress|`svn update`|`git pull --merge`|`git pull --rebase`|
+|Update with progress|`svn update`|`git pull --no-rebase`|`git pull --rebase`|
 |View local changed|`svn diff`|`git diff HEAD@{u}...`| *same* <sup>1</sup> |
 |Submit one or several files|`svn commit <file>...`|N/A|`git commit <file>... && git ` **`push-update`** `--type=rebase 'HEAD^!'` <sup>2</sup>|
 |Submit all changes|`svn commit`|`git ` **`push-update`** ` --type=merge`|`git ` **`push-update`** ` --type=rebase`|
