@@ -35,7 +35,7 @@ Can be:
 
 **`--dest=<dest>`** - remote branch to push to, as remote reference (like `origin/master` or `refs/remotes/origin/master`). By default the branch tracked by currently checked out branch is used. The target remote branch must have tracking branch which contains the commits you are going to push. This prevents rebasing and merging to wrong remote branch, which would be very damaging because whole content of current branch would go there.
 
-**`--tries`** - number of retries to update and push if the remote branch was concurrently updated. Default value is 1 (no retry) for rebase, 2 (retry once) for merge. The retry once for merge allows writing commit message without hurry.
+**`--tries=<number>`** - number of retries to update and push if the remote branch was concurrently updated. Default value is 1 (no retry) for rebase, 2 (retry once) for merge. The retry once for merge allows writing commit message without hurry.
 
 **`--no-fork-point`** - for *`rebase`* disable search of forkpoint, just run regular rebase.
 
