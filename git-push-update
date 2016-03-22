@@ -116,6 +116,7 @@ prepare_MERGE()
         exit 1
     fi
     MERGE_LOCAL_HASH=$(git rev-parse --revs-only "$src")
+    MERGE_PREVIOUS_HASH=
     UPDATE_HEAD="$MERGE_LOCAL_HASH"
 }
 
@@ -142,7 +143,13 @@ update_MERGE()
 
     git update-ref "refs/remotes/$OPT_HOST/$MERGE_LOCAL_NAME" "$src"
     git checkout -q -B "$MERGE_REMOTE_BRANCH" "$dst"
-    git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_NAME"
+    if test -z "$PUSH_COMMIT"
+    then
+        git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_NAME"
+    else
+        git merge --no-ff --no-commit "$OPT_HOST/$MERGE_LOCAL_NAME"
+        git commit -q --no-edit -c "$PUSH_COMMIT"
+    fi
 }
 
 prepare_REBASE()
@@ -226,6 +233,58 @@ update_REBASE()
     fi
 }
 
+try_pushupdate()
+{
+    prepare2_$UPDATE_TYPE
+    if ff_possible_$UPDATE_TYPE
+    then
+        PUSH_COMMIT="$UPDATE_HEAD"
+    else
+        if test -d "$REPO_DIR/update-tmp-repo"
+        then rm -rf "$REPO_DIR/update-tmp-repo"
+        fi
+        REPO="$REPO_DIR/update-tmp-repo"
+        git clone -q --no-checkout --shared . "$REPO"
+        git push -q "$REPO" +"$UPDATE_HEAD":refs/heads/local +"$REMOTE_CURRENT":refs/heads/remote
+        (
+            cd "$REPO"
+            git config core.sparseCheckout true
+            echo "!/**" >".git/info/sparse-checkout"
+            # it will add the files itself
+            # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
+            git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
+            git checkout -f -q remote
+            update_$UPDATE_TYPE remote local
+        )
+        test "$?" -eq 0
+        git fetch -q "$REPO" HEAD
+        PUSH_COMMIT=$(git rev-parse FETCH_HEAD)
+    fi
+
+    TRIES_LEFT=$(expr "$TRIES_LEFT" - 1 || true)
+    echo "Pushing..."
+    if git -c advice.pushFetchFirst=false push "$REMOTE" "$PUSH_COMMIT":"$REMOTE_BRANCH"
+    then exit 0
+    else
+        git fetch -q "$REMOTE" "$REMOTE_BRANCH"
+        REMOTE_OLD="$REMOTE_CURRENT"
+        REMOTE_CURRENT=$(git rev-parse FETCH_HEAD)
+        if test "$REMOTE_CURRENT" != "$PUSH_COMMIT"
+        then
+            if test "$REMOTE_OLD" != "$REMOTE_CURRENT"
+            then
+                echo "Remote branch was updated by other user during preparing new updates"
+                if test "$TRIES_LEFT" -gt 0
+                then
+                    echo "Retrying"
+                    return
+                fi
+            fi
+            exit 1
+        fi
+    fi
+}
+
 finalize()
 {
     rm -rf "$REPO_DIR/update-tmp-repo"
@@ -241,6 +300,7 @@ h,help      Help
 type!=      Update type to use [merge(default),rebase]
 dest!=      Remote reference name to push to (default is tracked by current branch)
 host!=      Host to be mentioned in merge message (hostname by default)
+tries!=     How many times to retry if upstream updated (default 1 for rebase, 2 for merge)
 no-fork-point! Don't look for forkpoint while rebasing without explicit limit"
 
 # git push-update remoteName branch
@@ -249,6 +309,7 @@ OPT_HOST=
 OPT_TYPE=merge
 OPT_DEST=
 OPT_NOFORKPOINT=no
+OPT_TRIES=
 while test "$1" != "--"
 do
     case "$1" in
@@ -258,6 +319,8 @@ do
     --host) OPT_HOST="$2"
         shift;;
     --type) OPT_TYPE="$2"
+        shift;;
+    --tries) OPT_TRIES="$2"
         shift;;
     --no-fork-point) OPT_NOFORKPOINT="yes";;
     *) echo "Unexpected option: $1" >/dev/stderr
@@ -273,8 +336,10 @@ then
 fi
 
 case "$OPT_TYPE" in
-merge) UPDATE_TYPE=MERGE;;
-rebase) UPDATE_TYPE=REBASE;;
+merge) UPDATE_TYPE=MERGE
+    TRIES_LEFT="${OPT_TRIES:-2}";;
+rebase) UPDATE_TYPE=REBASE
+    TRIES_LEFT="${OPT_TRIES:-1}";;
 *) echo "Unknown update type: $type"
     exit 1;;
 esac
@@ -288,45 +353,11 @@ shift
 
 REPO_DIR=$(mktemp -d)
 trap finalize 0
-REPO="$REPO_DIR/update-tmp-repo"
 prepare_$UPDATE_TYPE "$@"
 resolve_remote_branch "$OPT_DEST"
 git fetch -q "$REMOTE" "$REMOTE_BRANCH"
 REMOTE_CURRENT=$(git rev-parse FETCH_HEAD)
-prepare2_$UPDATE_TYPE
-if ff_possible_$UPDATE_TYPE
-then
-    PUSH_COMMIT="$UPDATE_HEAD"
-else
-    git clone -q --no-checkout --shared . "$REPO"
-    git push -q "$REPO" +"$UPDATE_HEAD":refs/heads/local +"$REMOTE_CURRENT":refs/heads/remote
-    (
-        cd "$REPO"
-        git config core.sparseCheckout true
-        echo "!/**" >".git/info/sparse-checkout"
-        # it will add the files itself
-        # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
-        git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
-        git checkout -f -q remote
-        update_$UPDATE_TYPE remote local
-    )
-    test "$?" -eq 0
-    git fetch "$REPO" HEAD
-    PUSH_COMMIT=$(git rev-parse FETCH_HEAD)
-fi
-
-if git -c advice.pushFetchFirst=false push "$REMOTE" "$PUSH_COMMIT":"$REMOTE_BRANCH"
-then :
-else
-    git fetch -q "$REMOTE" "$REMOTE_BRANCH"
-    REMOTE_OLD="$REMOTE_CURRENT"
-    REMOTE_CURRENT=$(git rev-parse FETCH_HEAD)
-    if test "$REMOTE_CURRENT" != "$PUSH_COMMIT"
-    then
-        if test "$REMOTE_OLD" != "$REMOTE_CURRENT"; then
-            echo "Remote branch was updated by other user during preparing new updates"
-            echo "please retry"
-        fi
-        exit 1
-    fi
-fi
+PUSH_COMMIT=
+while true
+do try_pushupdate
+done
