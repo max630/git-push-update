@@ -18,7 +18,7 @@ Get script [here](https://github.com/max630/git-push-update/raw/master/git-push-
 
       git-push-update [options] <source>...
 
-`<source>` are the commit which you wish to push, it depends on update type what is accepted there.
+`<source>` specifies which commits you wish to push, it depends on update type what is accepted there.
 
 ###Options:
 
