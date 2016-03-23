@@ -26,8 +26,8 @@ Get script [here](https://github.com/max630/git-push-update/raw/master/git-push-
 
 Can be:
 
- - **`rebase`** `<source>` can be a single commit or range. For single commit "rebase with forkpoint" is performed, so that if upstream branch was rebeased it is handled nicely. For range - only the specified range is rebased. There is an additional validation that rebased commits are equivalent to older, so you can repeat rebase without conflict. If the commit is changes during rebase (despite of all file changes were merged automaticallly) the update aborts and suggests to update manually.
- - **`merge`** `<source>` can be either HEAD, or name of local branch. If it's empty then the currently checked out branch is taken. If specified HEAD is detached or `<source>` is not a branch but expression which resolves to hash merge fails, because the branch name is needed for the merge message.
+ - **`rebase`** `<source>` can be a single commit or range. For single commit "rebase with forkpoint" is performed, so that if upstream branch was rebeased it is handled nicely. For range - only the specified range is rebased. There is an additional validation that rebased commits are equivalent to older, so you can repeat rebase without conflict. If some commit has changed during rebase (despite of all file changes were merged automaticallly) the update aborts and suggests to update manually.
+ - **`merge`** `<source>` can be either HEAD, or name of local branch. If it's empty then the currently checked out branch is taken. If specified HEAD is detached or `<source>` is not a branch but expression which resolves to hash, then update fails, because the branch name is needed for the merge message.
 
 **NOTE**: mixing merges and rebases might make sense in some workflow, but you should know what are you doing.
 
@@ -61,7 +61,7 @@ Some kind of cheatsheet which provides analogs for centralized VCS, svn here for
 
 ##How it works
 
-The rebase or merge is actually done locally, but in temporary clone. With help of shared objects and sparse checkout it does not consume much space - it takes only as much you have actually changed.
+The rebase or merge is actually done locally, but in temporary clone. With help of shared objects and sparse checkout it does not consume much space - it takes only as much as you have actually changed.
 
 ##Credits
 
