@@ -249,7 +249,7 @@ try_pushupdate()
         (
             cd "$REPO"
             git config core.sparseCheckout true
-            echo "!/**" >".git/info/sparse-checkout"
+            echo "!/" >".git/info/sparse-checkout"
             # it will add the files itself
             # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
             git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
