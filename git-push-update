@@ -134,6 +134,21 @@ ff_possible_MERGE()
     test "$actual_lp" = "$expect_lp"
 }
 
+git_checkout_skipall()
+{
+    local dst_ref_full dst_hash
+
+    dst_ref_full="$1"
+    dst_hash="$2"
+
+    if test -n "$dst_hash"
+    then git update-ref "$dst_ref_full" "$dst_hash"
+    fi
+    git symbolic-ref HEAD "$dst_ref_full"
+    git ls-tree -z HEAD | git update-index -z --index-info
+    git ls-files -z|git update-index --skip-worktree -z --stdin
+}
+
 update_MERGE()
 {
     local dst src
@@ -142,7 +157,7 @@ update_MERGE()
     src="$MERGE_LOCAL_HASH"
 
     git update-ref "refs/remotes/$OPT_HOST/$MERGE_LOCAL_NAME" "$src"
-    git checkout -q -B "$MERGE_REMOTE_BRANCH" "$dst"
+    git_checkout_skipall "$MERGE_REMOTE_BRANCH" "$dst"
     if test -z "$PUSH_COMMIT"
     then
         git merge --no-ff --edit "$OPT_HOST/$MERGE_LOCAL_NAME"
@@ -248,12 +263,10 @@ try_pushupdate()
         git push -q "$REPO" +"$UPDATE_HEAD":refs/heads/local +"$REMOTE_CURRENT":refs/heads/remote
         (
             cd "$REPO"
-            git config core.sparseCheckout true
-            echo "!/" >".git/info/sparse-checkout"
-            # it will add the files itself
-            # but we need to prevent "error: Sparse checkout leaves no entry on working directory"
-            git ls-tree -r --name-only remote | head -1 | checkout_from_quote >>.git/info/sparse-checkout
-            git checkout -f -q remote
+            # cannot use it because of "error: Sparse checkout leaves no entry on working directory"
+            # git config core.sparseCheckout true
+            # echo "!/" >".git/info/sparse-checkout"
+            git_checkout_skipall refs/heads/remote
             update_$UPDATE_TYPE remote local
         )
         test "$?" -eq 0
