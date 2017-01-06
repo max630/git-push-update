@@ -67,5 +67,5 @@ The rebase or merge is actually done locally, but in temporary clone. With help 
 
 Inspired by
 
-- [this](http://thread.gmane.org/gmane.comp.version-control.git/247237) thread in git mailing list.
+- [this](https://public-inbox.org/git/4ay6w9i74cygt6ii1b0db7wg.1398433713382@email.android.com/) thread in git mailing list.
 - `pushrebase` [extension](https://bitbucket.org/facebook/hg-experimental) to mercurial
