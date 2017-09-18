@@ -145,7 +145,7 @@ git_checkout_skipall()
     then git update-ref "$dst_ref_full" "$dst_hash"
     fi
     git symbolic-ref HEAD "$dst_ref_full"
-    git ls-tree -z HEAD | git update-index -z --index-info
+    git ls-tree -r -z HEAD | git update-index -z --index-info
     git ls-files -z|git update-index --skip-worktree -z --stdin
 }
 
